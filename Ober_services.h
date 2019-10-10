@@ -4,7 +4,7 @@
 #include<sys/wait.h>
 #include<pthread.h>
 #include<time.h>
-
+#include<condition_variable>
 typedef struct program_state
 {
 	int total_riders;
