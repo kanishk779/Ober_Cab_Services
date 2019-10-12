@@ -62,7 +62,6 @@ enum cab_type
 state st;
 int cab_id,payment_server_id,rider_id;
 pthread_cond_t cab_free = PTHREAD_COND_INITIALIZER; // customer will wait on this, and cab will wait on it
-pthread_cond_t customer_free = PTHREAD_COND_INITIALIZER; // cab will wait on this, and customer will signal it
 pthread_cond_t payment_server_free = PTHREAD_COND_INITIALIZER; // customer will wait on this for payment
 pthread_mutex_t mutex;
 pthread_mutex_t payment_mutex;
