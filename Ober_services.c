@@ -55,7 +55,8 @@ void * riders_routine(void * args)
     				not_found = false;
     				found_index = i;
     				found_cab = temp;
-    				st.busy_cabs++;
+    				if(ri->cab_type_number == 1) // make the cab busy only if it was a premier ride 
+    					st.busy_cabs++;
     				st.cab_status_array[i] = false;
     				if(ri->cab_type_number == premier)
     					temp->current_cab_type = premier_ride_state; // updating the cab type
