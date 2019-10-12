@@ -14,21 +14,21 @@ typedef struct rider
 {
 	int identifier;
 	struct rider * next;
-	int wait_time;
-	int ride_time;
-	int cab_type_number;
+	int wait_time;  // maximum wait time of the rider
+	int ride_time;	// ride time of the rider
+	int cab_type_number;	// type of car the rider wants
 } rider;
 typedef struct payment_server
 {
 	int identifier;
 	struct payment_server * next;
-	int busy_state;
+	int busy_state;	// is the payment server busy
 }payment_server;
 typedef struct cab
 {
 	int identifier;
 	struct cab * next;
-	int current_cab_type;	
+	int current_cab_type;	// the type of service the cab is currently offering
 }cab;
 typedef struct program_state
 {
@@ -38,14 +38,12 @@ typedef struct program_state
 	pthread_t * rider_threads;
 	pthread_t * cab_threads;
 	pthread_t * payment_server_threads;
-	rider * rider_head;
-	payment_server * payment_server_head;
-	cab * cab_head;
-	int busy_server;
-	int busy_cabs;
-	// actually you don't need these arrays as they can be incorporated in the respective structures
+	rider * rider_head;						// head of linked list of riders
+	payment_server * payment_server_head;	// head of linked list of payment_servers
+	cab * cab_head;							// head of linked list of cabs
+	int busy_server;						// number of busy servers
+	int busy_cabs;							// number of busy cabs
 	int * cab_status_array;
-	int * customer_status_array;
 } state;
 
 
@@ -62,11 +60,9 @@ enum cab_type
 	pool
 };
 state st;
-int rider_count;
 int cab_id,payment_server_id,rider_id;
 pthread_cond_t cab_free = PTHREAD_COND_INITIALIZER; // customer will wait on this, and cab will wait on it
 pthread_cond_t customer_free = PTHREAD_COND_INITIALIZER; // cab will wait on this, and customer will signal it
 pthread_cond_t payment_server_free = PTHREAD_COND_INITIALIZER; // customer will wait on this for payment
-pthread_cond_t customer_free_for_payment = PTHREAD_COND_INITIALIZER; // customer will signal this when it busy
 pthread_mutex_t mutex;
 pthread_mutex_t payment_mutex;

@@ -1,5 +1,7 @@
 #include"Ober_services.h"
-
+// there is one thing that needs to implemented :-
+// if the cab allocated to the user is pooled and that customer is the first one
+// than don't decrease the number of the cabs in the system
 void * riders_routine(void * args)
 {
 	// creates random parameters
@@ -14,7 +16,7 @@ void * riders_routine(void * args)
 	// define the time to wait
 	struct timeval tv;
     struct timespec ts;
-    ri->wait_time *= 1000; // converting it into ms
+    ri->wait_time *= 1000; // converting it into milli-seconds
     gettimeofday(&tv, NULL);
     ts.tv_sec = time(NULL) + ri->wait_time/1000;
     ts.tv_nsec = tv.tv_usec * 1000 + 1000 * 1000 * (ri->wait_time % 1000);
@@ -34,6 +36,7 @@ void * riders_routine(void * args)
     		errno = pthread_cond_timedwait(&cab_free,&mutex,&ts); 
     		if(errno == ETIMEDOUT)
     		{
+    			// if the thread exceeded given amount of time than this thread must discontinue
     			printf("The customer with id %d did not get any ride as wait time is finished\n",ri->identifier);
     			pthread_mutex_unlock(&mutex);
     			return NULL;
@@ -54,7 +57,7 @@ void * riders_routine(void * args)
     				found_cab = temp;
     				st.busy_cabs++;
     				st.cab_status_array[i] = false;
-    				if(ri->cab_type_number == 0)
+    				if(ri->cab_type_number == premier)
     					temp->current_cab_type = premier_ride_state; // updating the cab type
     				else
     					temp->current_cab_type = on_ride_pool_one_state; // updating the cab type
@@ -84,7 +87,6 @@ void * riders_routine(void * args)
     // now the ride is over leave the cab
     pthread_mutex_lock(&mutex);
     st.cab_status_array[found_index] = available; // so it becomes free now
-    // found_cab->current_cab_type = free_state  // but this is wrong because the ride could have been two people sharing the same cab
     // update the status of the car
     if(found_cab->current_cab_type == on_ride_pool_full_state)
     	found_cab->current_cab_type = on_ride_pool_one_state;
@@ -126,7 +128,7 @@ void * riders_routine(void * args)
     	pthread_mutex_unlock(&payment_mutex);
     }
     // now pay the fees
-    int random_time_for_fees = 1 + rand()%5;
+    int random_time_for_fees = 1 + rand()%5; // selecting random time to wait for giving fees
     printf("The rider with id %d is PAYING fees to payment server with id %d in time %d seconds\n",ri->identifier,found_payment->identifier,random_time_for_fees );
     sleep(random_time_for_fees);
     printf("The rider with id %d has PAID fees to payment server with id %d \n",ri->identifier,found_payment->identifier );
@@ -140,18 +142,12 @@ void * riders_routine(void * args)
 
 void * cab_routine(void * args)
 {
-	// the driver will have to wait for the signal from one of the customer
-	// once its get the signal than it will check the customer array if it is available
-	// if it finds the customer than
-	cab * curr_cab = (cab *)args;
-	//printf("The cab with id %d is active now\n", curr_cab->identifier);
+	// routine for cab
 	return NULL;
 }
 void * payment_servers_routine(void * args)
 {
-	// the server will have to wait for the signal from one of the customer
-	payment_server * curr_server = (payment_server * )args;
-	//printf("The server with id %d is active now\n",curr_server->identifier );
+	// this is the routine for payment server
 	return NULL;
 }
 void create_riders()
@@ -174,6 +170,7 @@ void create_riders()
 		}
 		pthread_create(&st.rider_threads[i],NULL,&riders_routine,(void *)new_rider);
 	}
+	// wait for all the rider threads to join
 	for(int i=0;i<st.total_riders;i++)
 	{
 		pthread_join(st.rider_threads[i],NULL);
@@ -186,12 +183,13 @@ void create_cabs()
 	cab * temp;
 	for(int i=0;i<st.total_cabs ;i++)
 	{
+		// initialising a new cab
 		cab * new_cab = (cab *)malloc(sizeof(cab));
 		new_cab->identifier = ++cab_id;
 		new_cab->current_cab_type = free_state;
 		if(i == 0)
 		{
-			st.cab_head = new_cab;
+			st.cab_head = new_cab; // setting the head of the linked list for cabs
 			temp = new_cab;
 		}
 		else
@@ -208,12 +206,13 @@ void create_payment_servers()
 	payment_server * temp;
 	for(int i=0; i<st.total_payment_servers ;i++)
 	{
+		// initialising new payment server
 		payment_server * new_server = (payment_server *)malloc(sizeof(payment_server));
 		new_server->identifier = ++payment_server_id;
 		new_server->busy_state = available;
 		if(i == 0)
 		{	
-			st.payment_server_head = new_server;
+			st.payment_server_head = new_server; // setting the head of the linked list
 			temp = new_server;
 		}
 		else
@@ -221,30 +220,24 @@ void create_payment_servers()
 			temp->next = new_server;
 			temp = temp->next;
 		}
+		// creating the thread
 		pthread_create(&st.payment_server_threads[i],NULL,&payment_servers_routine,(void *)new_server);
 	}
 }
 int main()
 {
-	
 	int riders,cabs,servers;
 	printf("how many riders, cabs, servers do you want(in that order)\n");
-	scanf("%d %d %d" ,&riders,&cabs,&servers);
-	st.cab_status_array = (int *)malloc(cabs * sizeof(int));
-	st.busy_server = 0;
-	st.busy_cabs = 0;
+	scanf("%d %d %d" ,&st.total_riders,&st.total_cabs,&st.total_payment_servers);
+	
+	st.busy_server = 0; // keeps track of number of busy servers
+	st.busy_cabs = 0; // keeps track of number of busy cabs
+	st.cab_status_array = (int *)malloc(st.total_cabs * sizeof(int));
 	for(int i=0;i<cabs;i++)
 	{
 		st.cab_status_array[i] = available; // it tells that the cab is not occupied
 	}
-	st.customer_status_array = (int *)malloc(riders * sizeof(int));
-	for(int i=0;i<riders;i++)
-	{
-		st.customer_status_array[i] = available;
-	}
-	st.total_riders = riders;
-	st.total_cabs = cabs;
-	st.total_payment_servers = servers;
+	// intialising the mutex required for cab_free , payment_server_free
 	errno = pthread_mutex_init(&(mutex),NULL);
 	if(errno)
 		perror("mutex init error");
