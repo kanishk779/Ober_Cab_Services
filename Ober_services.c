@@ -169,6 +169,8 @@ void create_riders()
 			temp->next = new_rider;
 			temp = temp->next;
 		}
+		int random_sleep = rand()%2;
+		sleep(random_sleep);
 		pthread_create(&st.rider_threads[i],NULL,&riders_routine,(void *)new_rider);
 	}
 	// wait for all the rider threads to join
